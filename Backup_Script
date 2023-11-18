@@ -1,0 +1,146 @@
+#!/bin/bash
+
+# Dá as boas-vindas
+echo -e "\nBEM VINDO AO PROGRAMA\n"
+sleep 1  # Adiciona um pequeno atraso para dar tempo de ler a mensagem
+
+# Função para descobrir diretórios
+function diretorios {
+    diretorio=/
+    for dir in $(find "$diretorio" -maxdepth 1 -type d); do
+        echo "Diretório encontrado: $dir"
+    done
+}
+
+# Função para aceitar apenas "s" ou "n"
+function aceitar_escolha {
+    read -r escolha
+    escolha=${escolha,,}  # Converte para minúsculas
+    while [[ $escolha != "s" && $escolha != "n" ]]; do
+        echo -e "\nEscolha inválida. Por favor, escreva 's' ou 'n'."
+        read -r escolha
+        escolha=${escolha,,}  # Converte para minúsculas
+    done
+}
+
+# Variável para armazenar o nome da pasta
+nome_da_pasta=""
+
+echo -n "Queres criar uma pasta para os backups? (s/n): "
+aceitar_escolha
+escolha1=$escolha
+clear
+
+if [ $escolha1 = "s" ]; then
+    echo -e "\nNeste momento estás neste diretório:\n"
+    pwd
+
+    echo -n -e "\nQueres criar a pasta aqui? (s/n):"
+    aceitar_escolha
+    escolha2=$escolha
+    clear
+
+    if [ $escolha2 = "s" ]; then
+        echo -n -e "\nDá um nome à pasta de backups:"
+        read nome_pasta1
+        mkdir "$nome_pasta1"
+        nome_da_pasta="$nome_pasta1"
+        clear
+        echo -e "\n\e[32mA pasta [$nome_pasta1] foi criada com sucesso\e[32m\n"
+    else
+        echo -e "\nPara te dar uma ajuda, aqui estão os nomes dos diretórios base que tens:\n"
+        diretorios
+        echo -n -e "\nEspecifica o diretório onde queres criar a pasta dos backups (precisa ter a (/)):"
+        read diretorio1
+
+        # Verifica se o diretório de destino já existe
+        if [ ! -d "$diretorio1" ]; then
+            echo -e "\n\e[31mERRO: O diretório especificado não existe. Certifica-te de fornecer um caminho válido.\e[0m\n"
+            exit 1  # Sai do script com código de erro
+        fi
+
+        echo -n "Que nome queres dar à pasta de backups:"
+        read nome_pasta2
+        cd "$diretorio1"
+        mkdir "$nome_pasta2"
+        nome_da_pasta="$nome_pasta2"
+        echo -e "\n\e[32mA pasta [$nome_pasta2] foi criada com sucesso\e[32m\n"
+    fi
+else
+    ls
+    echo -e -n "\nA pasta está neste local? (s/n):"
+    aceitar_escolha
+    escolha3=$escolha
+
+    if [ $escolha3 = "s" ]; then
+        echo -n -e "\nEscreve o nome da pasta:"
+        read nome_pasta3
+        cd "$nome_pasta3"
+        nome_da_pasta="$nome_pasta3"
+        echo -e "\n\e[32mA pasta [$nome_pasta3] foi criada com sucesso\e[32m\n"
+        clear
+    else
+        echo -e "\nPara te dar uma ajuda, aqui estão os nomes dos diretórios base que tens (não precisas meter a (/)):\n"
+        diretorios
+        echo -n -e "\nEspecifica o diretório exato:"
+        read diretorio2
+
+        # Verifica se o diretório de destino já existe
+        if [ ! -d "$diretorio2" ]; then
+            echo -e "\n\e[31mERRO: O diretório especificado não existe. Certifica-te de fornecer um caminho válido.\e[0m\n"
+            exit 1  # Sai do script com código de erro
+        fi
+
+        echo -n -e "\nQue nome queres dar à pasta backups:"
+        read nome_pasta4
+        cd "$diretorio2"
+        mkdir "$nome_pasta4"
+        nome_da_pasta="$nome_pasta4"
+        echo -e "\n\e[32mA pasta [$nome_pasta4] foi criada com sucesso\e[32m\n"
+    fi
+fi
+
+echo -e "\nEstes são os ficheiros que podes passar para a pasta [$nome_da_pasta]:\n"
+cd ..
+ls
+
+echo -e -n "\nEstes são os ficheiros que desejas passar (s/n):"
+aceitar_escolha
+escolha4=$escolha
+clear
+
+diretorio_atual=$(pwd)
+diretorio_especificado=false
+
+while true; do
+    if [ $escolha4 = "s" ]; then
+        echo -e "\nEstes são os ficheiros que podes passar para a pasta [$nome_da_pasta]:\n"
+        ls
+
+        echo -n -e "\nEscreve o nome dos ficheiros que desejas passar para a pasta [$nome_da_pasta] (Ctrl+C para sair): "
+        read -r ficheiros1
+
+        mv "$ficheiros1" "$diretorio_atual/$nome_da_pasta"
+	
+        ls > /dev/null
+
+    elif [ $escolha4 = "n" ] && [ "$diretorio_especificado" = false ]; then
+        diretorio_especificado=true
+	echo -e "\nPara te dar uma ajuda, aqui estão os nomes dos diretórios base que tens:"
+        diretorios
+	echo -e -n "\nEspecifica o diretório completo onde estão os ficheiros que queres passar para a pasta [$nome_da_pasta] (Ctrl+C para sair): "
+        read -r diretorio3
+        cd "$diretorio3"
+
+        echo -e "\nEstes são os ficheiros que podes passar para a pasta [$nome_da_pasta]:\n"
+        ls
+
+        echo -n -e "\nEscreve o nome dos ficheiros que desejas passar para a pasta [$nome_da_pasta] (Ctrl+C para sair): "
+        read -r ficheiros2
+	
+        mv "$ficheiros2" "$diretorio_atual/$nome_da_pasta"
+        ls > /dev/null
+    else
+        break  # Sair do loop se nenhuma condição for atendida
+    fi
+done
